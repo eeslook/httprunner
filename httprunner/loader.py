@@ -35,7 +35,7 @@ def load_yaml_file(yaml_file):
     """ load yaml file and check file content format
     """
     with io.open(yaml_file, 'r', encoding='utf-8') as stream:
-        yaml_content = yaml.load(stream)
+        yaml_content = yaml.load(stream, Loader=yaml.loader.FullLoader)
         _check_format(yaml_file, yaml_content)
         return yaml_content
 
@@ -184,8 +184,11 @@ def load_dot_env_file(dot_env_path):
 
     with io.open(dot_env_path, 'r', encoding='utf-8') as fp:
         for line in fp:
-            # maxsplit=1
-            if "=" in line:
+            if line.strip().startswith("#"):
+                continue
+            elif line.strip() == "":
+                continue
+            elif "=" in line:
                 variable, value = line.split("=", 1)
             elif ":" in line:
                 variable, value = line.split(":", 1)

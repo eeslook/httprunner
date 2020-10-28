@@ -299,7 +299,23 @@ def render_html_report(summary, report_template=None, report_dir=None):
     start_at_timestamp = int(summary["time"]["start_at"])
     summary["time"]["start_datetime"] = datetime.fromtimestamp(start_at_timestamp).strftime('%Y-%m-%d %H:%M:%S')
 
-    report_path = os.path.join(report_dir, "{}.html".format(start_at_timestamp))
+    # bug fix: total time error in html report which get the value from summary["time"]["duration"]
+    now_timestamp = datetime.now().timestamp()
+    summary["time"]["duration"] = now_timestamp - start_at_timestamp
+
+    strtime = datetime.fromtimestamp(start_at_timestamp).strftime('%Y%m%d%H%M%S')
+    if isinstance(summary["runcase"], basestring) and \
+            (summary["runcase"].endswith(".yml") or summary["runcase"].endswith(".yaml")):
+        report_path = os.path.join(report_dir,
+                                   "{}_{}.html".format(
+                                       summary["runcase"].split(".")[0].replace("\\", "_").replace("/", "_"), strtime))
+    elif isinstance(summary["runcase"], list) and len(summary["runcase"]) == 1:
+        report_path = os.path.join(report_dir,
+                                   "{}_{}.html".format(
+                                       summary["runcase"][0].split(".")[0].replace("\\", "_").replace("/", "_"),
+                                       strtime))
+    else:
+        report_path = os.path.join(report_dir, "all_{}.html".format(strtime))
 
     with io.open(report_template, "r", encoding='utf-8') as fp_r:
         template_content = fp_r.read()

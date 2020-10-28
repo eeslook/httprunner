@@ -87,7 +87,10 @@ class HttpSession(requests.Session):
             ).get("content-type")
             if request_content_type and "multipart/form-data" in request_content_type:
                 # upload file type
-                req_resp_dict["request"]["body"] = "upload file stream (OMITTED)"
+                req_resp_dict["request"]["body"] = "upload file multipart/form-data stream (OMITTED)"
+            elif request_content_type and "application/octet-stream" in request_content_type:
+                # upload file type
+                req_resp_dict["request"]["body"] = "upload file application/octet-stream stream (OMITTED)"
             else:
                 req_resp_dict["request"]["body"] = request_body
 
@@ -111,6 +114,9 @@ class HttpSession(requests.Session):
         if "image" in content_type:
             # response is image type, record bytes content only
             req_resp_dict["response"]["content"] = resp_obj.content
+        elif "octet-stream" in content_type:
+            # response is file type, record bytes content only
+            req_resp_dict["response"]["content"] = omit_long_data(resp_obj.content)
         else:
             try:
                 # try to record json data

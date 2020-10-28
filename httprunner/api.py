@@ -10,7 +10,7 @@ from httprunner import (exceptions, loader, logger, parser, report, runner,
 class HttpRunner(object):
 
     def __init__(self, failfast=False, save_tests=False, report_template=None, report_dir=None,
-        log_level="INFO", log_file=None):
+        log_level="INFO", log_file=None, run_case=None):
         """ initialize HttpRunner.
 
         Args:
@@ -33,6 +33,7 @@ class HttpRunner(object):
         self.report_template = report_template
         self.report_dir = report_dir
         self._summary = None
+        self._run_case = run_case
         if log_file:
             logger.setup_logger(log_level, log_file)
 
@@ -110,7 +111,7 @@ class HttpRunner(object):
 
         for testcase in test_suite:
             testcase_name = testcase.config.get("name")
-            logger.log_info("Start to run testcase: {}".format(testcase_name))
+            logger.log_info("Start to run testcase: {}".format(str(testcase_name)))
 
             result = self.unittest_runner.run(testcase)
             tests_results.append((testcase, result))
@@ -136,7 +137,8 @@ class HttpRunner(object):
             },
             "time": {},
             "platform": report.get_platform(),
-            "details": []
+            "details": [],
+            "runcase": self._run_case
         }
 
         for tests_result in tests_results:

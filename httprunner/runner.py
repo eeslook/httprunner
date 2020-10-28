@@ -161,11 +161,18 @@ class Runner(object):
                 self.session_context.update_test_variables(
                     var_name, hook_content_eval
                 )
+
+                # add by look, update hook variables to override the session variables(testcase)
+                self.session_context.update_session_variables(
+                    self.session_context.test_variables_mapping
+                )
+                
             else:
                 # format 2
                 logger.log_debug("call hook function: {}".format(action))
                 # TODO: check hook function if valid
                 self.session_context.eval_content(action)
+
 
     def _run_test(self, test_dict):
         """ run single teststep.
@@ -207,6 +214,7 @@ class Runner(object):
 
         # prepare
         test_dict = utils.lower_test_dict_keys(test_dict)
+        test_dict["request"]["base_url"] = test_dict.get("base_url", "")
         test_variables = test_dict.get("variables", {})
         self.session_context.init_test_variables(test_variables)
 
@@ -218,15 +226,17 @@ class Runner(object):
         parsed_test_request = self.session_context.eval_content(raw_request)
         self.session_context.update_test_variables("request", parsed_test_request)
 
-        # prepend url with base_url unless it's already an absolute URL
-        url = parsed_test_request.pop('url')
-        base_url = self.session_context.eval_content(test_dict.get("base_url", ""))
-        parsed_url = utils.build_url(base_url, url)
-
         # setup hooks
         setup_hooks = test_dict.get("setup_hooks", [])
         if setup_hooks:
             self.do_hook_actions(setup_hooks, "setup")
+            
+        parsed_test_request = self.session_context.test_variables_mapping.get('request', {})
+        
+        # prepend url with base_url unless it's already an absolute URL
+        url = parsed_test_request.pop('url')
+        base_url = self.session_context.eval_content(test_dict.get("base_url", ""))
+        parsed_url = utils.build_url(base_url, url)
 
         try:
             method = parsed_test_request.pop('method')
@@ -246,6 +256,7 @@ class Runner(object):
         logger.log_info("{method} {url}".format(method=method, url=parsed_url))
         logger.log_debug("request kwargs(raw): {kwargs}".format(kwargs=parsed_test_request))
 
+        parsed_test_request.pop("base_url")
         # request
         resp = self.http_client_session.request(
             method,
@@ -255,16 +266,16 @@ class Runner(object):
         )
         resp_obj = response.ResponseObject(resp)
 
+        # extract
+        extractors = test_dict.get("extract", {})
+        extracted_variables_mapping = resp_obj.extract_response(extractors)
+        self.session_context.update_session_variables(extracted_variables_mapping)
+
         # teardown hooks
         teardown_hooks = test_dict.get("teardown_hooks", [])
         if teardown_hooks:
             self.session_context.update_test_variables("response", resp_obj)
             self.do_hook_actions(teardown_hooks, "teardown")
-
-        # extract
-        extractors = test_dict.get("extract", {})
-        extracted_variables_mapping = resp_obj.extract_response(extractors)
-        self.session_context.update_session_variables(extracted_variables_mapping)
 
         # validate
         validators = test_dict.get("validate") or test_dict.get("validators") or []
@@ -311,12 +322,30 @@ class Runner(object):
 
             # override current teststep variables with former testcase output variables
             former_output_variables = self.session_context.test_variables_mapping
+
             if former_output_variables:
                 test_dict.setdefault("variables", {})
                 test_dict["variables"].update(former_output_variables)
 
+            # 当某个testcaseA的yaml文件中，在某个step中引用了其他的testcaseB时，新初始化的test_runner，初始化session_context对象时
+            # 会从testcaseB的config中获取session_variables_mapping，并覆盖掉新初始化的test_runner中的test_variables_mapping，
+            # 这样会导致当希望从testcaseA中传递的变量与testcaseB的config中声明的变量同名时，在执行testcaseB时，不能从testcaseA中传
+            # 递给testcaseB（因为test_runner初始化session_context对象时,会自动将testcaseB的config的变量覆盖到test_variables_mapping）
+            # 在testcaseB中，始终会使用testcaseB的config中的值
+
+            # 此时，应当，把session_variables_mapping的variables，覆盖到test_vaiables_mapping中
+            # logger.log_debug("test_dict session variables: {}".format(self.session_context.session_variables_mapping))
+
             try:
                 test_runner.run_test(test_dict)
+            except SkipTest:
+                if index + 1 == len(tests):
+                    # log exception request_type and name for locust stat
+                    self.exception_request_type = test_runner.exception_request_type
+                    self.exception_name = test_runner.exception_name
+                    raise
+                else:  # TODO: add skip result to the html report file
+                    pass
             except Exception:
                 # log exception request_type and name for locust stat
                 self.exception_request_type = test_runner.exception_request_type
@@ -364,11 +393,29 @@ class Runner(object):
 
         """
         self.meta_datas = None
+        try:
+            # print("test_dict:", test_dict)
+            # check skip
+            self._handle_skip_feature(test_dict)
+
+        except SkipTest:
+            self.exception_request_type = "testcase"
+            self.exception_name = test_dict.get("name")
+            raise
+        except Exception:
+            # log exception request_type and name for locust stat
+            self.exception_request_type = "testcase"
+            self.exception_name = test_dict.get("name")
+            raise
+        finally:
+            self.meta_datas = self.__get_test_data()
+
         if "teststeps" in test_dict:
             # nested testcase
             test_dict.setdefault("config", {}).setdefault("variables", {})
             test_dict["config"]["variables"].update(
                 self.session_context.session_variables_mapping)
+
             self._run_testcase(test_dict)
         else:
             # api
@@ -391,8 +438,7 @@ class Runner(object):
         for variable in output_variables_list:
             if variable not in variables_mapping:
                 logger.log_warning(
-                    "variable '{}' can not be found in variables mapping, failed to output!"\
-                        .format(variable)
+                    "variable '{}' can not be found in variables mapping, failed to output!".format(variable)
                 )
                 continue
 

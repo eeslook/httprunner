@@ -126,6 +126,18 @@ def not_equals(check_value, expect_value):
 def string_equals(check_value, expect_value):
     assert builtin_str(check_value) == builtin_str(expect_value)
 
+def string_contains(check_value, expect_value):
+    return contains(builtin_str(check_value), builtin_str(expect_value))
+
+def string_contained_by(check_value, expect_value):
+    return contained_by(builtin_str(check_value), builtin_str(expect_value))
+
+def string_not_contains(check_value, expect_value):
+    return not_contains(builtin_str(check_value), builtin_str(expect_value))
+
+def string_not_contained_by(check_value, expect_value):
+    return not_contained_by(builtin_str(check_value), builtin_str(expect_value))
+
 def length_equals(check_value, expect_value):
     assert isinstance(expect_value, integer_types)
     assert len(check_value) == expect_value
@@ -153,6 +165,14 @@ def contains(check_value, expect_value):
 def contained_by(check_value, expect_value):
     assert isinstance(expect_value, (list, tuple, dict, basestring))
     assert check_value in expect_value
+
+def not_contains(check_value, expect_value):
+    assert isinstance(check_value, (list, tuple, dict, basestring))
+    assert expect_value not in check_value
+
+def not_contained_by(check_value, expect_value):
+    assert isinstance(expect_value, (list, tuple, dict, basestring))
+    assert check_value not in expect_value
 
 def type_match(check_value, expect_value):
     def get_type(name):

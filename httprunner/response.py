@@ -27,9 +27,9 @@ class ResponseObject(object):
             if key == "json":
                 value = self.resp_obj.json()
             elif key == "cookies":
-                value =  self.resp_obj.cookies.get_dict()
+                value = self.resp_obj.cookies.get_dict()
             else:
-                value =  getattr(self.resp_obj, key)
+                value = getattr(self.resp_obj, key)
 
             self.__dict__[key] = value
             return value

@@ -76,7 +76,8 @@ def main_hrun():
         failfast=args.failfast,
         save_tests=args.save_tests,
         report_template=args.report_template,
-        report_dir=args.report_dir
+        report_dir=args.report_dir,
+        run_case = args.testcase_paths
     )
     try:
         for path in args.testcase_paths:
