@@ -163,7 +163,7 @@ class Runner(object):
                 )
 
                 # add by look, update hook variables to override the session variables(testcase)
-                self.session_context.test_variables_mapping[var_name] = hook_content_eval
+                self.session_context.update_session_variables({var_name: hook_content_eval})
                 
             else:
                 # format 2
