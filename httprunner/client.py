@@ -68,7 +68,7 @@ class HttpSession(requests.Session):
             msg = "\n================== {} details ==================\n".format(r_type)
             for key, value in req_resp_dict[r_type].items():
                 msg += "{:<16} : {}\n".format(key, repr(value))
-            logger.log_debug(msg)
+            logger.log_info(msg)
 
         req_resp_dict = {
             "request": {},
