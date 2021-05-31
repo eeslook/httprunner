@@ -145,7 +145,7 @@ class SessionContext(object):
                 validator.to_value(self.test_variables_mapping)
                 validator_dict["check_result"] = "pass"
                 validate_msg += "\t==> pass"
-                logger.log_debug(validate_msg)
+                logger.log_info(validate_msg)
             except (AssertionError, TypeError):
                 validate_pass = False
                 validator_dict["check_result"] = "fail"

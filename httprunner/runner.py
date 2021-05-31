@@ -252,7 +252,7 @@ class Runner(object):
             raise exceptions.ParamsError(err_msg)
 
         logger.log_info("{method} {url}".format(method=method, url=parsed_url))
-        logger.log_debug("request kwargs(raw): {kwargs}".format(kwargs=parsed_test_request))
+        logger.log_info("request kwargs(raw): {kwargs}".format(kwargs=parsed_test_request))
 
         parsed_test_request.pop("base_url")
         # request
