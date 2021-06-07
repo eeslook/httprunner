@@ -354,7 +354,8 @@ class HtmlTestResult(unittest.TextTestResult):
     def startTest(self, test):
         """ add start test time """
         super(HtmlTestResult, self).startTest(test)
-        logger.color_print(test.shortDescription(), "yellow")
+        # logger.color_print(test.shortDescription(), "yellow")
+        logger.log_info(test.shortDescription())
 
     def addSuccess(self, test):
         super(HtmlTestResult, self).addSuccess(test)
